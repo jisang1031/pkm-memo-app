@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>메모</title>
+  <style>
+    :root {
+      --bg: #F9F4EF;
+      --card: #FFFFFF;
+      --accent: #C96A42;
+      --accent-hover: #B85C37;
+      --accent-light: #FDF0E8;
+      --accent-dim: rgba(201, 106, 66, 0.10);
+      --text: #1C1C1E;
+      --text-2: #6C6C70;
+      --text-3: #AEAEB2;
+      --border: #EDE8E3;
+      --green: #28A745;
+      --red: #DC3545;
+      --shadow-sm: 0 1px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow: 0 2px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+      --shadow-lg: 0 6px 28px rgba(0,0,0,0.09);
+      --r: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Token modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 24px;
+    }
+
+    .modal-box {
+      background: var(--card);
+      border-radius: 24px;
+      padding: 28px 24px 24px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .modal-desc {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-2);
+      margin-bottom: 18px;
+    }
+
+    .modal-token-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      outline: none;
+      color: var(--text);
+      background: var(--bg);
+      margin-bottom: 16px;
+      transition: border-color 0.15s;
+    }
+    .modal-token-input:focus { border-color: var(--accent); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-cancel-btn {
+      padding: 9px 20px;
+      border-radius: 100px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text-2);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .modal-cancel-btn:hover { background: var(--bg); }
+
+    /* ── Header ── */
+    .app-header {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 52px 24px 12px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .app-title {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      color: var(--text);
+    }
+
+    .token-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 15px;
+      border-radius: 100px;
+      border: none;
+      background: var(--card);
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .token-btn:hover { background: var(--accent-light); color: var(--accent); }
+
+    /* ── Main container ── */
+    .main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 12px 24px 80px;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #1C1C1E;
+      color: #fff;
+      padding: 11px 22px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.22s, transform 0.22s cubic-bezier(0.34, 1.46, 0.64, 1);
+      pointer-events: none;
+      z-index: 999;
+      white-space: nowrap;
+      max-width: calc(100vw - 48px);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.success { background: #1B3A27; }
+    .toast.error   { background: #3A1C1B; }
+
+    /* ── Compose card ── */
+    .compose-card {
+      background: var(--card);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+
+    .compose-top {
+      padding: 20px 20px 0;
+    }
+
+    .compose-date-line {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .compose-area {
+      width: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: inherit;
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--text);
+      min-height: 120px;
+      background: transparent;
+      display: block;
+    }
+    .compose-area::placeholder { color: var(--text-3); }
+
+    /* Attach strip */
+    .attach-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 20px 0;
+    }
+    .attach-strip:empty { display: none; }
+
+    .thumb-wrap {
+      position: relative;
+    }
+    .thumb-wrap img {
+      width: 76px;
+      height: 76px;
+      object-fit: cover;
+      display: block;
+      border-radius: 10px;
+    }
+    .remove-x {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #666;
+      color: #fff;
+      border: 2px solid var(--bg);
+      cursor: pointer;
+      font-size: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 12px;
+      background: var(--accent-dim);
+      border-radius: 10px;
+      font-size: 12.5px;
+      color: var(--accent);
+      font-weight: 500;
+      max-width: 200px;
+    }
+    .file-chip-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+    .file-remove-x {
+      background: transparent;
+      border: none;
+      color: var(--text-3);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .file-remove-x:hover { color: var(--accent); }
+
+    /* Tag input */
+    .tag-input-wrap {
+      padding: 8px 20px 10px;
+      border-top: 1px solid var(--border);
+    }
+    .tag-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 13.5px;
+      color: var(--text-2);
+      background: transparent;
+    }
+    .tag-input::placeholder { color: var(--text-3); }
+
+    /* Compose footer */
+    .compose-footer {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px 16px;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--text-3);
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover { background: var(--accent-dim); color: var(--accent); }
+
+    .shortcut-hint {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-left: 2px;
+      user-select: none;
+    }
+
+    .save-btn {
+      margin-left: auto;
+      padding: 9px 24px;
+      border-radius: 100px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .save-btn:hover { background: var(--accent-hover); }
+    .save-btn:active { transform: scale(0.97); }
+    .save-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+    .spin {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Feed ── */
+    .feed-header {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    .feed-empty {
+      text-align: center;
+      color: var(--text-3);
+      font-size: 15px;
+      padding: 40px 0;
+      line-height: 1.7;
+    }
+
+    .memo-card {
+      background: var(--card);
+      border-radius: var(--r);
+      box-shadow: var(--shadow-sm);
+      padding: 17px 20px;
+      margin-bottom: 12px;
+      transition: box-shadow 0.18s, transform 0.18s;
+      cursor: default;
+    }
+    .memo-card:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-1px);
+    }
+
+    .memo-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 9px;
+    }
+    .memo-meta {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .memo-delete-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      color: var(--text-3);
+      padding: 3px 5px;
+      border-radius: 7px;
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+    .memo-delete-btn:hover {
+      color: var(--red);
+      background: rgba(220, 53, 69, 0.08);
+    }
+
+    .memo-body {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .memo-thumbs {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .memo-thumbs img {
+      width: 84px;
+      height: 84px;
+      object-fit: cover;
+      border-radius: 10px;
+      background: var(--border);
+    }
+
+    .memo-files {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .memo-file-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12.5px;
+      color: var(--text-2);
+    }
+
+    .memo-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .memo-tag-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      background: var(--accent-dim);
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    #fileInput { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Token modal -->
+<div class="modal-overlay" id="tokenModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">GitHub 토큰 설정</div>
+    <p class="modal-desc">
+      메모를 저장하고 불러오려면 GitHub Personal Access Token (PAT)이 필요합니다.<br><br>
+      토큰은 이 기기의 브라우저에만 저장되며 외부로 전송되지 않습니다.
+    </p>
+    <input type="password" class="modal-token-input" id="tokenInputField"
+      placeholder="ghp_..." autocomplete="off" spellcheck="false">
+    <div class="modal-actions">
+      <button class="modal-cancel-btn" id="tokenCancelBtn" onclick="closeTokenModal()">취소</button>
+      <button class="save-btn" style="margin-left:0" onclick="confirmToken()">저장</button>
+    </div>
+  </div>
+</div>
+
+<header class="app-header">
+  <h1 class="app-title">메모</h1>
+  <button class="token-btn" onclick="showTokenModal()">🔑 토큰 변경</button>
+</header>
+
+<div class="main">
+
+  <!-- Compose -->
+  <div class="compose-card">
+    <div class="compose-top">
+      <div class="compose-date-line" id="composeDateLine"></div>
+      <textarea class="compose-area" id="memoText"
+        placeholder="지금 어떤 생각을 하고 있나요?"></textarea>
+    </div>
+    <div class="attach-strip" id="attachStrip"></div>
+    <div class="tag-input-wrap">
+      <input type="text" class="tag-input" id="tagInput"
+        placeholder="태그 (콤마로 구분, 선택사항)">
+    </div>
+    <div class="compose-footer">
+      <button class="icon-btn" title="파일·사진 첨부"
+        onclick="document.getElementById('fileInput').click()">📎</button>
+      <span class="shortcut-hint">⌘↵ 저장</span>
+      <button class="save-btn" id="saveBtn" onclick="saveMemo()">저장</button>
+    </div>
+  </div>
+
+  <!-- Feed -->
+  <div class="feed-header">최근 메모</div>
+  <div id="feedList">
+    <div class="feed-empty">불러오는 중…</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<input type="file" id="fileInput" multiple onchange="handleFiles(this.files)">
+
+<script>
+/* ════════════════════════════════════════════
+   Config
+════════════════════════════════════════════ */
+const GH_REPO = 'jisang1031/pkm-mobile-inbox';
+const INBOX   = '00-Inbox';
+const GH_API  = `https://api.github.com/repos/${GH_REPO}/contents`;
+
+/* ════════════════════════════════════════════
+   State
+════════════════════════════════════════════ */
+let pendingAttachments = [];
+const fileShaCache = new Map();
+
+/* ════════════════════════════════════════════
+   Token helpers
+════════════════════════════════════════════ */
+const getToken   = () => localStorage.getItem('gh_token') || '';
+const storeToken = t  => localStorage.setItem('gh_token', t);
+
+function showTokenModal() {
+  const field  = document.getElementById('tokenInputField');
+  const cancel = document.getElementById('tokenCancelBtn');
+  cancel.style.display = getToken() ? '' : 'none';
+  field.value = '';
+  document.getElementById('tokenModal').style.display = 'flex';
+  setTimeout(() => field.focus(), 60);
+}
+
+function closeTokenModal() {
+  document.getElementById('tokenModal').style.display = 'none';
+}
+
+function confirmToken() {
+  const val = document.getElementById('tokenInputField').value.trim();
+  if (!val) { showToast('토큰을 입력해주세요', 'error'); return; }
+  storeToken(val);
+  closeTokenModal();
+  showToast('토큰이 저장되었습니다', 'success');
+  loadFeed();
+}
+
+document.getElementById('tokenInputField').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmToken();
+});
+
+/* ════════════════════════════════════════════
+   GitHub API
+════════════════════════════════════════════ */
+async function ghFetch(path, options = {}) {
+  const token = getToken();
+  if (!token) throw new Error('토큰이 설정되지 않았습니다');
+
+  const res = await fetch(`${GH_API}/${path}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(options.headers || {})
+    }
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`GitHub ${res.status}: ${errText.slice(0, 160)}`);
+  }
+
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('json') ? res.json() : null;
+}
+
+const ghGet = path => ghFetch(path);
+
+async function ghPut(path, base64Content) {
+  return ghFetch(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: `add ${path.split('/').pop()}`,
+      content: base64Content
+    })
+  });
+}
+
+async function ghDelete(path, sha) {
+  return ghFetch(path, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: `delete ${path.split('/').pop()}`,
+      sha
+    })
+  });
+}
+
+/* ════════════════════════════════════════════
+   Encoding helpers
+════════════════════════════════════════════ */
+function textToBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+function decodeBase64Text(b64) {
+  const bin   = atob(b64.replace(/\s/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+function dataUrlToBase64(dataUrl) {
+  return dataUrl.split(',')[1];
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = e => resolve(dataUrlToBase64(e.target.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ════════════════════════════════════════════
+   Date / time helpers
+════════════════════════════════════════════ */
+const KO_DAYS = ['일','월','화','수','목','금','토'];
+const pad = n => String(n).padStart(2, '0');
+
+function formatStamp(d) {
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+function formatDateIso(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function formatTimeHM(d) {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function displayDate(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const day = KO_DAYS[new Date(y, m-1, d).getDay()];
+  return `${m}월 ${d}일 ${day}요일 · ${timeStr}`;
+}
+
+function displayDateFromFilename(name) {
+  const match = name.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);
+  if (!match) return name;
+  const [, y, mo, d, h, mi] = match;
+  return displayDate(`${y}-${mo}-${d}`, `${h}:${mi}`);
+}
+
+function updateComposeDateLine() {
+  const now = new Date();
+  const day = KO_DAYS[now.getDay()];
+  document.getElementById('composeDateLine').textContent =
+    `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 ${day}요일`;
+}
+
+/* ════════════════════════════════════════════
+   Toast
+════════════════════════════════════════════ */
+let _toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast' + (type ? ' ' + type : '') + ' show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = 'toast'; }, 2600);
+}
+
+/* ════════════════════════════════════════════
+   Attachments
+════════════════════════════════════════════ */
+async function handleFiles(fileList) {
+  for (const file of fileList) {
+    if (file.type.startsWith('image/')) {
+      const dataUrl = await resizeImage(file, 1600, 0.80);
+      pendingAttachments.push({ type: 'image', file, name: file.name, dataUrl });
+    } else {
+      pendingAttachments.push({ type: 'file', file, name: file.name });
+    }
+  }
+  document.getElementById('fileInput').value = '';
+  renderAttachStrip();
+}
+
+function resizeImage(file, maxLong, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const long  = Math.max(img.width, img.height);
+      const scale = long > maxLong ? maxLong / long : 1;
+      const w = Math.round(img.width  * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width  = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = url;
+  });
+}
+
+function renderAttachStrip() {
+  const strip = document.getElementById('attachStrip');
+  strip.innerHTML = '';
+  pendingAttachments.forEach((att, i) => {
+    if (att.type === 'image') {
+      const wrap = document.createElement('div');
+      wrap.className = 'thumb-wrap';
+      wrap.innerHTML = `
+        <img src="${att.dataUrl}" alt="이미지">
+        <button class="remove-x" onclick="removeAtt(${i})">✕</button>`;
+      strip.appendChild(wrap);
+    } else {
+      const chip = document.createElement('div');
+      chip.className = 'file-chip';
+      chip.innerHTML = `
+        <span>${fileIcon(att.name)}</span>
+        <span class="file-chip-name">${att.name}</span>
+        <button class="file-remove-x" onclick="removeAtt(${i})">✕</button>`;
+      strip.appendChild(chip);
+    }
+  });
+}
+
+function removeAtt(i) {
+  pendingAttachments.splice(i, 1);
+  renderAttachStrip();
+}
+
+function fileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (ext === 'pdf')                  return '📄';
+  if (['doc','docx'].includes(ext))   return '📝';
+  if (['xls','xlsx'].includes(ext))   return '📊';
+  if (['ppt','pptx'].includes(ext))   return '📋';
+  return '📎';
+}
+
+function sanitizeName(s) {
+  return s.normalize('NFC').replace(/[\/\\:*?"<>|]/g, '_').slice(0, 60);
+}
+
+/* ════════════════════════════════════════════
+   Save memo
+════════════════════════════════════════════ */
+async function saveMemo() {
+  const text = document.getElementById('memoText').value.trim();
+  if (!text && pendingAttachments.length === 0) {
+    showToast('내용을 입력하거나 파일을 첨부해주세요', 'error');
+    return;
+  }
+  if (!getToken()) {
+    showTokenModal();
+    return;
+  }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>저장 중';
+
+  try {
+    const now     = new Date();
+    const stamp   = formatStamp(now);
+    const dateIso = formatDateIso(now);
+    const timeHM  = formatTimeHM(now);
+
+    const attachLines = [];
+
+    for (const att of pendingAttachments) {
+      const baseName = sanitizeName(att.name.replace(/\.[^.]+$/, ''));
+      if (att.type === 'image') {
+        const imgName = `${stamp}-${baseName}.jpg`;
+        await ghPut(`${INBOX}/images/${imgName}`, dataUrlToBase64(att.dataUrl));
+        attachLines.push(`![첨부](images/${imgName})`);
+      } else {
+        const ext    = att.name.includes('.') ? att.name.split('.').pop() : '';
+        const stored = ext ? `${stamp}-${baseName}.${ext}` : `${stamp}-${baseName}`;
+        await ghPut(`${INBOX}/files/${stored}`, await fileToBase64(att.file));
+        attachLines.push(`[첨부파일: ${att.name}](files/${stored})`);
+      }
+    }
+
+    const rawTags  = document.getElementById('tagInput').value;
+    const tags     = rawTags.split(',').map(t => t.trim().replace(/^#+/, '')).filter(Boolean);
+    const tagsYaml = '[' + tags.join(', ') + ']';
+
+    const parts = [];
+    if (text) parts.push(text);
+    parts.push(...attachLines);
+    const body    = parts.join('\n\n');
+    const content = `---\ndate: ${dateIso}\ntime: ${timeHM}\nprocessed: false\ntags: ${tagsYaml}\n---\n\n${body}`;
+
+    await ghPut(`${INBOX}/${stamp}.md`, textToBase64(content));
+
+    document.getElementById('memoText').value       = '';
+    document.getElementById('memoText').style.height = '';
+    document.getElementById('tagInput').value        = '';
+    pendingAttachments = [];
+    renderAttachStrip();
+
+    showToast('저장되었습니다 ✓', 'success');
+    await loadFeed();
+  } catch(e) {
+    console.error(e);
+    showToast('저장 실패: ' + e.message, 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '저장';
+  }
+}
+
+/* ════════════════════════════════════════════
+   Feed
+════════════════════════════════════════════ */
+async function loadFeed() {
+  if (!getToken()) return;
+  const list = document.getElementById('feedList');
+  list.innerHTML = '<div class="feed-empty" style="color:var(--text-3)">불러오는 중…</div>';
+
+  try {
+    const items = await ghGet(INBOX);
+
+    if (!Array.isArray(items)) throw new Error('Unexpected API response');
+
+    const mdFiles = items
+      .filter(f => f.type === 'file' && f.name.endsWith('.md'))
+      .sort((a, b) => b.name.localeCompare(a.name))
+      .slice(0, 15);
+
+    fileShaCache.clear();
+    for (const f of mdFiles) fileShaCache.set(f.name, f.sha);
+
+    if (mdFiles.length === 0) {
+      list.innerHTML = '<div class="feed-empty">아직 메모가 없습니다.<br>첫 메모를 남겨보세요 ✍️</div>';
+      return;
+    }
+
+    /* Parallel fetch of all file contents */
+    const results = await Promise.allSettled(
+      mdFiles.map(f => ghGet(`${INBOX}/${f.name}`))
+    );
+
+    list.innerHTML = '';
+    for (let i = 0; i < mdFiles.length; i++) {
+      const r = results[i];
+      if (r.status === 'rejected') { console.warn('File load failed:', mdFiles[i].name, r.reason); continue; }
+      try {
+        const raw  = decodeBase64Text(r.value.content);
+        const card = buildMemoCard(mdFiles[i].name, mdFiles[i].sha, raw);
+        list.appendChild(card);
+      } catch(e) {
+        console.warn('Card build failed:', mdFiles[i].name, e);
+      }
+    }
+  } catch(e) {
+    if (e.message.includes('404')) {
+      list.innerHTML = '<div class="feed-empty">아직 메모가 없습니다.<br>첫 메모를 남겨보세요 ✍️</div>';
+    } else {
+      list.innerHTML = '<div class="feed-empty" style="color:var(--red)">피드 로딩 실패</div>';
+      console.error(e);
+    }
+  }
+}
+
+function buildMemoCard(filename, sha, raw) {
+  const { meta, body } = parseFrontmatter(raw);
+
+  const card = document.createElement('div');
+  card.className = 'memo-card';
+
+  const dateLabel = (meta.date && meta.time)
+    ? displayDate(meta.date, meta.time)
+    : displayDateFromFilename(filename);
+
+  const cardHeader = document.createElement('div');
+  cardHeader.className = 'memo-card-header';
+
+  const metaEl = document.createElement('div');
+  metaEl.className = 'memo-meta';
+  metaEl.textContent = dateLabel;
+  cardHeader.appendChild(metaEl);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className  = 'memo-delete-btn';
+  deleteBtn.title      = '메모 삭제';
+  deleteBtn.textContent = '🗑';
+  cardHeader.appendChild(deleteBtn);
+  card.appendChild(cardHeader);
+
+  const imgMatches  = [...body.matchAll(/!\[.*?\]\((images\/[^)]+)\)/g)];
+  const fileMatches = [...body.matchAll(/\[첨부파일: ([^\]]+)\]\((files\/[^)]+)\)/g)];
+  const imgPaths    = imgMatches.map(m => m[1]);
+  const fileLabels  = fileMatches.map(m => m[1]);
+  const filePaths   = fileMatches.map(m => m[2]);
+
+  deleteBtn.onclick = () => deleteMemo(filename, sha, imgPaths, filePaths, card);
+
+  const plainText = body
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[첨부파일:.*?\]\(.*?\)/g, '')
+    .trim();
+
+  if (plainText) {
+    const p = document.createElement('div');
+    p.className   = 'memo-body';
+    p.textContent = plainText;
+    card.appendChild(p);
+  }
+
+  if (imgPaths.length > 0) {
+    const thumbRow = document.createElement('div');
+    thumbRow.className = 'memo-thumbs';
+    for (const imgPath of imgPaths.slice(0, 4)) {
+      const imgEl = document.createElement('img');
+      imgEl.alt = '이미지';
+      loadImageIntoEl(imgPath, imgEl);
+      thumbRow.appendChild(imgEl);
+    }
+    card.appendChild(thumbRow);
+  }
+
+  if (fileLabels.length > 0) {
+    const fileRow = document.createElement('div');
+    fileRow.className = 'memo-files';
+    for (const label of fileLabels) {
+      const item = document.createElement('div');
+      item.className = 'memo-file-item';
+      item.innerHTML = `<span>${fileIcon(label)}</span><span>${label}</span>`;
+      fileRow.appendChild(item);
+    }
+    card.appendChild(fileRow);
+  }
+
+  const tags = Array.isArray(meta.tags) ? meta.tags.filter(Boolean) : [];
+  if (tags.length > 0) {
+    const tagRow = document.createElement('div');
+    tagRow.className = 'memo-tags';
+    for (const tag of tags) {
+      const chip = document.createElement('span');
+      chip.className   = 'memo-tag-chip';
+      chip.textContent = '#' + tag;
+      tagRow.appendChild(chip);
+    }
+    card.appendChild(tagRow);
+  }
+
+  return card;
+}
+
+async function loadImageIntoEl(relPath, imgEl) {
+  try {
+    const data = await ghGet(`${INBOX}/${relPath}`);
+    if (data.content) {
+      imgEl.src = `data:image/jpeg;base64,${data.content.replace(/\s/g, '')}`;
+    }
+  } catch(e) {
+    console.warn('Image load failed:', relPath, e);
+  }
+}
+
+async function deleteMemo(filename, sha, imgPaths, filePaths, cardEl) {
+  if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+  try {
+    for (const imgPath of imgPaths) {
+      try {
+        const fullPath = `${INBOX}/${imgPath}`;
+        const data = await ghGet(fullPath);
+        await ghDelete(fullPath, data.sha);
+      } catch(e) {
+        console.warn('첨부 이미지 삭제 실패:', imgPath, e);
+      }
+    }
+    for (const filePath of filePaths) {
+      try {
+        const fullPath = `${INBOX}/${filePath}`;
+        const data = await ghGet(fullPath);
+        await ghDelete(fullPath, data.sha);
+      } catch(e) {
+        console.warn('첨부 파일 삭제 실패:', filePath, e);
+      }
+    }
+
+    const currentSha = fileShaCache.get(filename) || sha;
+    await ghDelete(`${INBOX}/${filename}`, currentSha);
+
+    fileShaCache.delete(filename);
+    cardEl.remove();
+    showToast('삭제되었습니다', 'success');
+  } catch(e) {
+    console.error(e);
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+/* ════════════════════════════════════════════
+   Frontmatter parser
+════════════════════════════════════════════ */
+function parseFrontmatter(raw) {
+  const match = raw.match(/^---\n([\s\S]*?)\n---\n?\n?([\s\S]*)$/);
+  if (!match) return { meta: {}, body: raw };
+  const meta = {};
+  for (const line of match[1].split('\n')) {
+    const idx = line.indexOf(': ');
+    if (idx > 0) {
+      const key = line.slice(0, idx).trim();
+      const val = line.slice(idx + 2).trim();
+      if (val.startsWith('[') && val.endsWith(']')) {
+        const inner = val.slice(1, -1).trim();
+        meta[key] = inner ? inner.split(',').map(s => s.trim()).filter(Boolean) : [];
+      } else {
+        meta[key] = val;
+      }
+    }
+  }
+  return { meta, body: match[2] };
+}
+
+/* ════════════════════════════════════════════
+   Textarea auto-resize + ⌘↵
+════════════════════════════════════════════ */
+document.getElementById('memoText').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.max(120, this.scrollHeight) + 'px';
+});
+
+document.getElementById('memoText').addEventListener('keydown', function(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    e.preventDefault();
+    saveMemo();
+  }
+});
+
+/* ════════════════════════════════════════════
+   Init
+════════════════════════════════════════════ */
+function init() {
+  updateComposeDateLine();
+  setInterval(updateComposeDateLine, 30_000);
+
+  if (!getToken()) {
+    showTokenModal();
+    document.getElementById('feedList').innerHTML =
+      '<div class="feed-empty">토큰을 설정하면 메모가 여기에 표시됩니다.</div>';
+  } else {
+    loadFeed();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
